@@ -1,26 +1,75 @@
-# 🔐 Token Vault — UUPS Upgradeable Smart Contracts
+# UUPS Upgradeable Token Vault Protocol
 
-A production-ready **UUPS upgradeable Token Vault system** built using **Solidity**, **Hardhat**, and **OpenZeppelin Upgradeable Contracts**.
-The project demonstrates **secure upgradeability**, **storage safety**, **role-based access control**, and **backward-compatible feature evolution** across multiple contract versions.
+This repository contains a **production-grade upgradeable smart contract system** implementing a **Token Vault protocol** using the **UUPS (Universal Upgradeable Proxy Standard)** pattern.  
+The project is designed to reflect **real-world DeFi upgrade practices**, focusing on **security, storage safety, controlled upgrades, and long-term protocol evolution**.
+
+Unlike simple upgrade demos, this system walks through a **complete upgrade lifecycle** from Version 1 to Version 3 while preserving all on-chain state and enforcing strict access control.
 
 ---
 
-## 📦 Project Overview
+## What This Project Demonstrates
 
-This repository implements a token vault that evolves safely through **three upgradeable versions**:
+This project was built to showcase how professional blockchain protocols handle upgrades safely:
 
-* **V1** – Core deposit & withdrawal logic
-* **V2** – Yield generation and deposit pausing
-* **V3** – Delayed withdrawals and emergency exits
+- Secure **UUPS proxy architecture**
+- Safe **storage layout management** across versions
+- **Initializer protection** to prevent takeover attacks
+- **Role-based access control** for upgrades and admin actions
+- Backward-compatible feature additions
+- Cross-version state preservation
 
-All upgrades preserve user balances, total deposits, and access control state.
+The design closely follows upgrade patterns used in large-scale protocols such as Aave, Compound, and Uniswap.
+
+---
+
+## Protocol Evolution
+
+The Token Vault evolves through **three carefully designed versions**:
+
+### 🔹 Version 1 – Core Vault
+
+- Token deposits and withdrawals
+- Deposit fee deduction
+- User balance tracking
+- Total deposit accounting
+- Upgrade-safe initialization
+
+This version establishes the **base storage layout** that all future versions must respect.
+
+---
+
+### 🔹 Version 2 – Yield & Controls
+
+Built directly on top of V1 without breaking state:
+
+- Configurable annual yield rate (basis points)
+- Linear yield accrual (non-compounding)
+- Yield claiming per user
+- Deposit pause and unpause mechanism
+- Dedicated `PAUSER_ROLE`
+
+All V1 balances and totals remain untouched after upgrade.
+
+---
+
+### 🔹 Version 3 – Withdrawal Safety
+
+Adds advanced safety mechanisms while preserving all prior data:
+
+- Withdrawal request system
+- Mandatory withdrawal delay
+- Time-based execution enforcement
+- Emergency withdrawal option
+- One active withdrawal request per user
+
+This version models real-world safety controls used during high-risk situations.
 
 ---
 
 ## 📁 Repository Structure
 
 ```
-your-repo/
+uups-token-vault/
 ├── contracts/
 │   ├── TokenVaultV1.sol
 │   ├── TokenVaultV2.sol
@@ -42,16 +91,19 @@ your-repo/
 └── README.md
 ```
 
+Each directory reflects a **production workflow**: contracts, upgrades, security tests, and automated deployment scripts.
+
 ---
 
-## ⚙️ Installation & Setup
+## Setup Instructions
 
 ### Prerequisites
 
-* Node.js **v18.x or v20.x** (recommended)
-* npm
+- Node.js **v18 or v20**
+- npm
+- Git
 
-### Install dependencies
+### Install Dependencies
 
 ```bash
 npm install
@@ -59,109 +111,109 @@ npm install
 
 ---
 
-## 🛠️ Compile Contracts
+## Compile Contracts
 
 ```bash
 npx hardhat compile
 ```
 
-All contracts compile against the **Paris EVM target**.
+Contracts are compiled using modern Solidity standards and OpenZeppelin upgrade-safe libraries.
 
 ---
 
-## 🧪 Run Tests
+## Testing
 
 ```bash
 npx hardhat test
 ```
 
-### Test Coverage
+### Test Coverage Includes
 
-* ✅ Unit tests for each contract version
-* ✅ Upgrade tests (V1 → V2 → V3)
-* ✅ Security tests
-* ✅ Storage layout validation
+- Contract functionality per version
+- Upgrade integrity (V1 → V2 → V3)
+- Access control enforcement
+- Initialization protection
+- Storage layout safety
+- Unauthorized upgrade prevention
 
-> **All tests pass successfully with ≥ 90% coverage**
+The tests simulate **real upgrade flows** instead of isolated unit testing.
 
 ---
 
-## 🚀 Deployment & Upgrade Flow
+## Deployment & Upgrade Flow
 
-### 1️⃣ Start Local Blockchain
+### Start Local Network
 
 ```bash
 npx hardhat node
 ```
 
-### 2️⃣ Deploy V1 (Proxy)
+### Deploy Version 1 (Proxy)
 
 ```bash
 npx hardhat run scripts/deploy-v1.js --network localhost
 ```
 
-### 3️⃣ Upgrade to V2
+### Upgrade to Version 2
 
 ```bash
 npx hardhat run scripts/upgrade-to-v2.js --network localhost
 ```
 
-### 4️⃣ Upgrade to V3
+### Upgrade to Version 3
 
 ```bash
 npx hardhat run scripts/upgrade-to-v3.js --network localhost
 ```
 
-The proxy address **remains the same** across all upgrades.
+>  The proxy address remains unchanged throughout all upgrades.
 
 ---
 
-## 🧠 Storage Layout Strategy
+##  Storage Layout Safety
 
-* Uses **UUPS proxy pattern**
-* All contracts:
+To avoid storage collisions:
 
-  * Inherit from `Initializable`
-  * Include `__gap` arrays for future variables
-* No storage variable reordering
-* Storage layout validated using:
+- No variable reordering across versions
+- New variables are **only appended**
+- Storage gaps (`__gap`) reserved for future use
+- Each upgrade reduces the gap size accordingly
 
-  ```js
-  upgrades.validateUpgrade(..., { kind: "uups" })
-  ```
+Upgrade safety is validated using Hardhat Upgrades utilities before execution.
 
-### Security Measure
+---
 
-Each implementation contract disables direct initialization:
+##  Initialization Protection
+
+All implementation contracts:
+
+- Use OpenZeppelin `initializer` / `reinitializer`
+- Disable direct initialization via constructor
 
 ```solidity
-/// @custom:oz-upgrades-unsafe-allow constructor
 constructor() {
     _disableInitializers();
 }
 ```
 
-This prevents initialization attacks on implementation contracts.
+This prevents attackers from initializing implementation contracts directly.
 
 ---
 
-## 🔐 Access Control Design
+## Access Control Model
 
-Implemented using **OpenZeppelin AccessControlUpgradeable**.
+The protocol uses **AccessControlUpgradeable**.
 
 ### Roles
 
-* `DEFAULT_ADMIN_ROLE`
+- **DEFAULT_ADMIN_ROLE**
+  - Role management authority
+- **UPGRADER_ROLE**
+  - Controls implementation upgrades
+- **PAUSER_ROLE**
+  - Manages deposit pausing (V2+)
 
-  * Manages all roles
-* `UPGRADER_ROLE`
-
-  * Authorizes contract upgrades
-* `PAUSER_ROLE`
-
-  * Controls deposit pausing
-
-### Upgrade Security
+Upgrade authorization is strictly enforced:
 
 ```solidity
 function _authorizeUpgrade(address)
@@ -171,54 +223,25 @@ function _authorizeUpgrade(address)
 {}
 ```
 
-Only authorized accounts can upgrade implementations.
+---
+
+## Design Choices & Scope
+
+- Yield is linear and non-compounding
+- Emergency withdrawals bypass delay intentionally
+- No token slashing or penalties
+- Assumes ERC20 compliance
+
+These decisions prioritize **upgrade correctness and security clarity**.
 
 ---
 
-## 🧩 Contract Versions Summary
+## Automated Evaluation
 
-### TokenVaultV1
+The `submission.yml` file defines:
 
-* ERC20 deposits
-* Withdrawals
-* Deposit fee logic
-* Reinitialization protection
+- Dependency installation
+- Compilation commands
+- Test execution steps
 
-### TokenVaultV2
-
-* Yield rate configuration
-* Yield claiming
-* Deposit pause/unpause
-* Full backward compatibility
-
-### TokenVaultV3
-
-* Withdrawal request + delay
-* Time-locked execution
-* Emergency withdrawal
-* State preserved from V2
-
----
-
-## ⚠️ Known Limitations & Design Decisions
-
-* Yield calculation is simplified (linear, non-compounding)
-* Emergency withdrawal bypasses delay (by design)
-* No slashing or penalty mechanism
-* ERC20 token assumed to be well-behaved (standard)
-
-These decisions were made to **focus on upgrade safety and correctness** rather than economic complexity.
-
----
-
-## 📄 submission.yml
-
-The repository includes a **mandatory `submission.yml`** file that defines:
-
-* Setup commands
-* Compile commands
-* Test commands
-
-This enables **automated evaluation** without manual intervention.
-
----
+This enables **hands-free evaluation** by automated graders.
